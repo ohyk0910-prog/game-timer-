@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>카드게임 타이머</title>
+    <style>
+        :root { --tape-blue: #b9e2f5; --tape-dark: #4a4a4a; --pink: #ffc1cc; }
+        body { background-color: #fff9f0; display: flex; justify-content: center; align-items: center; height: 100vh; margin: 0; font-family: "Arial", sans-serif; }
+        #app { display: flex; flex-direction: column; align-items: center; }
+        #game-status { font-size: 22px; font-weight: bold; margin-bottom: 15px; color: #6a6a6a; min-height: 30px; }
+        #tape-container { position: relative; width: 350px; height: 220px; margin-bottom: 25px; }
+        #tape-body { width: 340px; height: 210px; background: var(--tape-blue); border: 6px solid var(--tape-dark); border-radius: 35px; position: relative; display: flex; flex-direction: column; align-items: center; justify-content: center; cursor: pointer; box-shadow: 0 10px 0 rgba(0, 0, 0, 0.1); transition: all 0.2s; }
+        #tape-label { width: 270px; height: 110px; background: white; border: 5px solid var(--tape-dark); border-radius: 50px; display: flex; justify-content: space-around; align-items: center; }
+        .spool { width: 60px; height: 60px; background: var(--pink); border: 4px solid var(--tape-dark); border-radius: 50%; display: flex; justify-content: center; align-items: center; font-size: 24px; }
+        @keyframes spin { 100% { transform: rotate(360deg); } }
+        #timer-window { width: 110px; height: 70px; display: flex; justify-content: center; align-items: center; }
+        #timer-text { font-size: 32px; font-weight: bold; color: #ff5e78; display: none; }
+        #label-guide { font-size: 11px; color: #b0b0b0; line-height: 1.3; text-align: center; font-weight: bold; }
+        #tape-bottom-decoration { margin-top: 15px; display: flex; gap: 12px; }
+        .dot { width: 14px; height: 14px; border: 3px solid var(--tape-dark); border-radius: 50%; }
+        .red { background: #ff8585; } .yellow { background: #ffd966; } .green { background: #93e9be; }
+        .controls { display: flex; gap: 10px; }
+        .btn { padding: 12px 25px; font-size: 16px; font-weight: bold; color: white; border: 4px solid var(--tape-dark); border-radius: 15px; cursor: pointer; transition: 0.1s; box-shadow: 0 4px 0 var(--tape-dark); }
+        .btn:active { transform: translateY(3px); box-shadow: 0 1px 0 var(--tape-dark); }
+        .start { background: #66ccff; } .pause { background: #ffcc66; } .reset { background: #ff9999; }
+        .shaking { animation: shake 0.1s infinite; }
+        @keyframes shake { 0%, 100% { transform: translate(0, 0); } 50% { transform: translate(-2px, -1px); } }
+        .crack { position: absolute; background: var(--tape-dark); display: none; z-index: 5; }
+        .crack-1 { width: 5px; height: 120px; top: -10px; left: 120px; transform: rotate(15deg); }
+        .crack-2 { width: 5px; height: 120px; bottom: -10px; right: 100px; transform: rotate(-25deg); }
+        .broken { transform: scale(0.95) translateY(10px); filter: grayscale(0.6); opacity: 0.8; }
+        #boom-cloud { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); font-size: 150px; display: none; z-index: 10; }
+    </style>
+</head>
+<body>
+
+<div id="app">
+  <div id="game-status">준비 완료!</div>
+  <div id="tape-container">
+    <div id="tape-body" onclick="peekTime()">
+      <div id="tape-label">
+        <div class="spool left-spool">❤️</div>
+        <div id="timer-window">
+          <span id="timer-text">??</span>
+          <div id="label-guide">가운데를 누르면<br>시간이 보여요!</div>
+        </div>
+        <div class="spool right-spool">❤️</div>
+      </div>
+      <div id="tape-bottom-decoration">
+        <div class="dot red"></div><div class="dot yellow"></div><div class="dot green"></div>
+      </div>
+      <div class="crack crack-1"></div><div class="crack crack-2"></div>
+    </div>
+    <div id="boom-cloud">💥</div>
+  </div>
+  <div class="controls">
+    <button class="btn start" onclick="startGame()">시작</button>
+    <button class="btn pause" onclick="pauseGame()">멈춤</button>
+    <button class="btn reset" onclick="resetGame()">리셋</button>
+  </div>
+</div>
+
+<audio id="tick-audio" src="https://assets.mixkit.co/active_storage/sfx/1018/1018-preview.mp3" loop></audio>
+<audio id="boom-audio" src="https://assets.mixkit.co/active_storage/sfx/1004/1004-preview.mp3"></audio>
+
+<script>
+    let timeLeft = 0, timerInterval = null, isPlaying = false, isPaused = false;
+    const tickSnd = document.getElementById("tick-audio"), boomSnd = document.getElementById("boom-audio");
+    const statusTxt = document.getElementById("game-status"), timerTxt = document.getElementById("timer-text"), guideTxt = document.getElementById("label-guide");
+    const spools = document.querySelectorAll(".spool"), tapeBody = document.getElementById("tape-body"), boomCloud = document.getElementById("boom-cloud"), cracks = document.querySelectorAll(".crack");
+
+    function startGame() {
+      if (isPlaying && !isPaused) return;
+      if (!isPlaying) {
+        timeLeft = Math.floor(Math.random() * 51) + 50;
+        tapeBody.classList.remove("broken", "shaking"); boomCloud.style.display = "none";
+        cracks.forEach((c) => (c.style.display = "none")); timerTxt.style.display = "none"; guideTxt.style.display = "block";
+      }
+      isPlaying = true; isPaused = false;
+      statusTxt.innerText = "🌀 테이프가 돌아가는 중..."; statusTxt.style.color = "#66ccff";
+      tickSnd.play().catch((e) => console.log("터치 후 시작해주세요"));
+      spools.forEach((s) => { s.style.animation = "spin 1.5s linear infinite"; s.style.animationPlayState = "running"; });
+      if (timerInterval) clearInterval(timerInterval);
+      timerInterval = setInterval(() => { timeLeft--; if (timeLeft <= 0) explode(); }, 1000);
+    }
+
+    function pauseGame() {
+      if (!isPlaying || isPaused) return;
+      isPaused = true; clearInterval(timerInterval); tickSnd.pause();
+      spools.forEach((s) => (s.style.animationPlayState = "paused"));
+      statusTxt.innerText = "⏸️ 잠시 멈춤"; statusTxt.style.color = "#ffcc66";
+    }
+
+    function resetGame() {
+      isPlaying = false; isPaused = false; clearInterval(timerInterval); tickSnd.pause(); tickSnd.currentTime = 0;
+      statusTxt.innerText = "준비 완료!"; statusTxt.style.color = "#6a6a6a";
+      timerTxt.style.display = "none"; guideTxt.style.display = "block";
+      tapeBody.classList.remove("broken", "shaking"); boomCloud.style.display = "none";
+      cracks.forEach((c) => (c.style.display = "none"));
+      spools.forEach((s) => { s.style.animation = "none"; s.style.animationPlayState = "running"; });
+    }
+
+    function peekTime() {
+      if (!isPlaying || isPaused) return;
+      guideTxt.style.display = "none"; timerTxt.innerText = timeLeft + "s"; timerTxt.style.display = "block";
+      setTimeout(() => { if (isPlaying && !isPaused) { timerTxt.style.display = "none"; guideTxt.style.display = "block"; } }, 1200);
+    }
+
+    function explode() {
+      isPlaying = false; clearInterval(timerInterval);
+      tickSnd.pause(); boomSnd.currentTime = 0; boomSnd.play();
+      statusTxt.innerText = "💥 펑! 게임 종료!"; tapeBody.classList.add("shaking"); boomCloud.style.display = "block";
+      spools.forEach((s) => (s.style.animation = "none"));
+      setTimeout(() => {
+        tapeBody.classList.remove("shaking"); tapeBody.classList.add("broken");
+        cracks.forEach((c) => (c.style.display = "block"));
+        timerTxt.innerText = "0s"; timerTxt.style.display = "block"; guideTxt.style.display = "none";
+      }, 700);
+    }
+</script>
+</body>
+</html>
