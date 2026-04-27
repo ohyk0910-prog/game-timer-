@@ -3,121 +3,370 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>카드게임 타이머</title>
+    <title>하이엔드 레트로 카세트 타이머</title>
+    <link href="https://fonts.googleapis.com/css2?family=Black+Han+Sans&family=Do+Hyeon&display=swap" rel="stylesheet">
     <style>
-        :root { --tape-blue: #b9e2f5; --tape-dark: #4a4a4a; --pink: #ffc1cc; }
-        body { background-color: #fff9f0; display: flex; justify-content: center; align-items: center; height: 100vh; margin: 0; font-family: "Arial", sans-serif; }
-        #app { display: flex; flex-direction: column; align-items: center; }
-        #game-status { font-size: 22px; font-weight: bold; margin-bottom: 15px; color: #6a6a6a; min-height: 30px; }
-        #tape-container { position: relative; width: 350px; height: 220px; margin-bottom: 25px; }
-        #tape-body { width: 340px; height: 210px; background: var(--tape-blue); border: 6px solid var(--tape-dark); border-radius: 35px; position: relative; display: flex; flex-direction: column; align-items: center; justify-content: center; cursor: pointer; box-shadow: 0 10px 0 rgba(0, 0, 0, 0.1); transition: all 0.2s; }
-        #tape-label { width: 270px; height: 110px; background: white; border: 5px solid var(--tape-dark); border-radius: 50px; display: flex; justify-content: space-around; align-items: center; }
-        .spool { width: 60px; height: 60px; background: var(--pink); border: 4px solid var(--tape-dark); border-radius: 50%; display: flex; justify-content: center; align-items: center; font-size: 24px; }
-        @keyframes spin { 100% { transform: rotate(360deg); } }
-        #timer-window { width: 110px; height: 70px; display: flex; justify-content: center; align-items: center; }
-        #timer-text { font-size: 32px; font-weight: bold; color: #ff5e78; display: none; }
-        #label-guide { font-size: 11px; color: #b0b0b0; line-height: 1.3; text-align: center; font-weight: bold; }
-        #tape-bottom-decoration { margin-top: 15px; display: flex; gap: 12px; }
-        .dot { width: 14px; height: 14px; border: 3px solid var(--tape-dark); border-radius: 50%; }
-        .red { background: #ff8585; } .yellow { background: #ffd966; } .green { background: #93e9be; }
-        .controls { display: flex; gap: 10px; }
-        .btn { padding: 12px 25px; font-size: 16px; font-weight: bold; color: white; border: 4px solid var(--tape-dark); border-radius: 15px; cursor: pointer; transition: 0.1s; box-shadow: 0 4px 0 var(--tape-dark); }
-        .btn:active { transform: translateY(3px); box-shadow: 0 1px 0 var(--tape-dark); }
-        .start { background: #66ccff; } .pause { background: #ffcc66; } .reset { background: #ff9999; }
+        body {
+            background: #fff9f0;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+            font-family: 'Do Hyeon', sans-serif;
+            user-select: none;
+        }
+
+        #app {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        #game-status {
+            font-size: 32px;
+            margin-bottom: 30px;
+            color: #4a4a4a;
+            text-shadow: 2px 2px 0 #fff;
+        }
+
+        /* 카세트 본체: 질감과 입체감 디테일 */
+        #cassette {
+            width: 380px;
+            height: 240px;
+            background: linear-gradient(145deg, #c6ecff, #ffd6ec);
+            border: 8px solid #333;
+            border-radius: 30px;
+            box-shadow: 15px 15px 0 #bcbcbc, inset -4px -4px 10px rgba(0,0,0,0.1);
+            position: relative;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            cursor: pointer;
+            transition: all 0.1s ease;
+        }
+
+        #cassette:active {
+            transform: translateY(4px);
+            box-shadow: 15px 5px 0 #bcbcbc;
+        }
+
+        /* 실제 나사 같은 디테일 */
+        .screw {
+            width: 14px;
+            height: 14px;
+            background: #555;
+            border-radius: 50%;
+            position: absolute;
+            border: 2px solid #222;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+        .screw::before {
+            content: "";
+            width: 80%;
+            height: 2px;
+            background: #222;
+            position: absolute;
+            transform: rotate(45deg);
+        }
+        .screw::after {
+            content: "";
+            width: 80%;
+            height: 2px;
+            background: #222;
+            position: absolute;
+            transform: rotate(-45deg);
+        }
+        .s1 { top: 15px; left: 15px; } .s2 { top: 15px; right: 15px; }
+        .s3 { bottom: 15px; left: 15px; } .s4 { bottom: 15px; right: 15px; }
+
+        /* 라벨 디자인 */
+        #label {
+            width: 300px;
+            height: 150px;
+            background: #fff;
+            border: 6px solid #333;
+            border-radius: 20px;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            position: relative;
+            overflow: hidden;
+            background-image: repeating-linear-gradient(0deg, transparent, transparent 19px, #eee 20px);
+        }
+
+        .label-top-bar {
+            width: 100%;
+            height: 25px;
+            background: #ff9999;
+            position: absolute;
+            top: 0;
+            border-bottom: 4px solid #333;
+            display: flex;
+            align-items: center;
+            padding-left: 15px;
+            font-size: 12px;
+            font-weight: bold;
+            color: #333;
+        }
+
+        /* 톱니바퀴 휠(spool) 디테일 */
+        .spools-container {
+            display: flex;
+            width: 100%;
+            justify-content: space-around;
+            align-items: center;
+            margin-top: 20px;
+        }
+
+        .spool {
+            width: 60px;
+            height: 60px;
+            border-radius: 50%;
+            background: #333;
+            border: 5px solid #111;
+            position: relative;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        /* 톱니바퀴 이빨 표현 */
+        .spool-teeth {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            border-radius: 50%;
+        }
+        .spool-teeth::before, .spool-teeth::after {
+            content: "";
+            position: absolute;
+            background: #555;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+        }
+        .spool-teeth::before { width: 80%; height: 6px; }
+        .spool-teeth::after { width: 6px; height: 80%; }
+
+        @keyframes spin {
+            100% { transform: rotate(360deg); }
+        }
+
+        /* 중앙 표시창 */
+        #center-display {
+            text-align: center;
+            width: 130px;
+        }
+
+        #timer-text {
+            font-family: 'Black Han Sans', sans-serif;
+            font-size: 44px;
+            color: #ff5e78;
+            display: none;
+            letter-spacing: -1px;
+        }
+
+        /* 요청하신 한글 문구 */
+        #guide {
+            font-size: 16px;
+            color: #888;
+            line-height: 1.3;
+            word-break: keep-all;
+        }
+
+        /* 버튼 그룹 */
+        .controls {
+            margin-top: 40px;
+            display: flex;
+            gap: 15px;
+        }
+
+        .btn {
+            padding: 14px 28px;
+            border: 4px solid #333;
+            border-radius: 20px;
+            font-family: 'Do Hyeon', sans-serif;
+            font-size: 22px;
+            color: white;
+            cursor: pointer;
+            box-shadow: 0 6px 0 #333;
+            transition: 0.1s;
+        }
+
+        .btn:active {
+            transform: translateY(4px);
+            box-shadow: 0 2px 0 #333;
+        }
+
+        .start { background: #66ccff; }
+        .pause { background: #ffcc66; color: #333; }
+        .reset { background: #ff9999; }
+
+        /* 폭발 애니메이션 */
         .shaking { animation: shake 0.1s infinite; }
-        @keyframes shake { 0%, 100% { transform: translate(0, 0); } 50% { transform: translate(-2px, -1px); } }
-        .crack { position: absolute; background: var(--tape-dark); display: none; z-index: 5; }
-        .crack-1 { width: 5px; height: 120px; top: -10px; left: 120px; transform: rotate(15deg); }
-        .crack-2 { width: 5px; height: 120px; bottom: -10px; right: 100px; transform: rotate(-25deg); }
-        .broken { transform: scale(0.95) translateY(10px); filter: grayscale(0.6); opacity: 0.8; }
-        #boom-cloud { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); font-size: 150px; display: none; z-index: 10; }
+        @keyframes shake { 
+            0% { transform: translate(2px, 2px) rotate(0.5deg); }
+            50% { transform: translate(-2px, -2px) rotate(-0.5deg); }
+        }
+
+        #boom {
+            position: absolute;
+            font-size: 180px;
+            display: none;
+            z-index: 10;
+            pointer-events: none;
+        }
     </style>
 </head>
+
 <body>
 
 <div id="app">
-  <div id="game-status">준비 완료!</div>
-  <div id="tape-container">
-    <div id="tape-body" onclick="peekTime()">
-      <div id="tape-label">
-        <div class="spool left-spool">❤️</div>
-        <div id="timer-window">
-          <span id="timer-text">??</span>
-          <div id="label-guide">가운데를 누르면<br>시간이 보여요!</div>
+    <div id="game-status">READY</div>
+
+    <div id="cassette" onclick="peekTime()">
+        <div class="screw s1"></div><div class="screw s2"></div>
+        <div class="screw s3"></div><div class="screw s4"></div>
+
+        <div id="label">
+            <div class="label-top-bar">SIDE A - RANDOM MIX</div>
+            <div class="spools-container">
+                <div class="spool" id="spool1">
+                    <div class="spool-teeth"></div>
+                </div>
+
+                <div id="center-display">
+                    <span id="timer-text">00:00</span>
+                    <div id="guide">누르면<br>시간이 보여요!</div>
+                </div>
+
+                <div class="spool" id="spool2">
+                    <div class="spool-teeth"></div>
+                </div>
+            </div>
         </div>
-        <div class="spool right-spool">❤️</div>
-      </div>
-      <div id="tape-bottom-decoration">
-        <div class="dot red"></div><div class="dot yellow"></div><div class="dot green"></div>
-      </div>
-      <div class="crack crack-1"></div><div class="crack crack-2"></div>
+
+        <div id="boom">💥</div>
     </div>
-    <div id="boom-cloud">💥</div>
-  </div>
-  <div class="controls">
-    <button class="btn start" onclick="startGame()">시작</button>
-    <button class="btn pause" onclick="pauseGame()">멈춤</button>
-    <button class="btn reset" onclick="resetGame()">리셋</button>
-  </div>
+
+    <div class="controls">
+        <button class="btn start" onclick="startGame()">시작</button>
+        <button class="btn pause" onclick="pauseGame()">멈춤</button>
+        <button class="btn reset" onclick="resetGame()">리셋</button>
+    </div>
 </div>
 
-<audio id="tick-audio" src="https://assets.mixkit.co/active_storage/sfx/1018/1018-preview.mp3" loop></audio>
-<audio id="boom-audio" src="https://assets.mixkit.co/active_storage/sfx/1004/1004-preview.mp3"></audio>
+<audio id="boomSound" src="https://assets.mixkit.co/active_storage/sfx/1004/1004-preview.mp3"></audio>
 
 <script>
-    let timeLeft = 0, timerInterval = null, isPlaying = false, isPaused = false;
-    const tickSnd = document.getElementById("tick-audio"), boomSnd = document.getElementById("boom-audio");
-    const statusTxt = document.getElementById("game-status"), timerTxt = document.getElementById("timer-text"), guideTxt = document.getElementById("label-guide");
-    const spools = document.querySelectorAll(".spool"), tapeBody = document.getElementById("tape-body"), boomCloud = document.getElementById("boom-cloud"), cracks = document.querySelectorAll(".crack");
+    let timeLeft = 0, timer, isPlaying = false, isPaused = false;
+    const statusTxt = document.getElementById("game-status");
+    const timerTxt = document.getElementById("timer-text");
+    const guideTxt = document.getElementById("guide");
+    const spool1 = document.getElementById("spool1");
+    const spool2 = document.getElementById("spool2");
+    const boom = document.getElementById("boom");
+
+    let audioCtx;
+
+    // 기계적인 째깍 소리
+    function tick() {
+        if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        const osc = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
+        osc.frequency.value = 1200;
+        gain.gain.value = 0.02;
+        osc.connect(gain);
+        gain.connect(audioCtx.destination);
+        osc.start();
+        osc.stop(audioCtx.currentTime + 0.04);
+    }
+
+    function formatTime(seconds) {
+        const mins = Math.floor(seconds / 60);
+        const secs = seconds % 60;
+        return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+    }
 
     function startGame() {
-      if (isPlaying && !isPaused) return;
-      if (!isPlaying) {
-        timeLeft = Math.floor(Math.random() * 51) + 50;
-        tapeBody.classList.remove("broken", "shaking"); boomCloud.style.display = "none";
-        cracks.forEach((c) => (c.style.display = "none")); timerTxt.style.display = "none"; guideTxt.style.display = "block";
-      }
-      isPlaying = true; isPaused = false;
-      statusTxt.innerText = "🌀 테이프가 돌아가는 중..."; statusTxt.style.color = "#66ccff";
-      tickSnd.play().catch((e) => console.log("터치 후 시작해주세요"));
-      spools.forEach((s) => { s.style.animation = "spin 1.5s linear infinite"; s.style.animationPlayState = "running"; });
-      if (timerInterval) clearInterval(timerInterval);
-      timerInterval = setInterval(() => { timeLeft--; if (timeLeft <= 0) explode(); }, 1000);
+        if (isPlaying && !isPaused) return;
+        if (!isPlaying) {
+            timeLeft = Math.floor(Math.random() * 51) + 40; // 40~90초 랜덤
+        }
+        isPlaying = true;
+        isPaused = false;
+
+        statusTxt.innerText = "🌀 PLAYING...";
+        statusTxt.style.color = "#66ccff";
+
+        spool1.style.animation = "spin 1.2s linear infinite";
+        spool2.style.animation = "spin 1.2s linear infinite";
+        spool1.style.animationPlayState = "running";
+        spool2.style.animationPlayState = "running";
+
+        clearInterval(timer);
+        timer = setInterval(() => {
+            timeLeft--;
+            tick();
+            if (timeLeft <= 0) explode();
+        }, 1000);
     }
 
     function pauseGame() {
-      if (!isPlaying || isPaused) return;
-      isPaused = true; clearInterval(timerInterval); tickSnd.pause();
-      spools.forEach((s) => (s.style.animationPlayState = "paused"));
-      statusTxt.innerText = "⏸️ 잠시 멈춤"; statusTxt.style.color = "#ffcc66";
+        if (!isPlaying || isPaused) return;
+        isPaused = true;
+        clearInterval(timer);
+        spool1.style.animationPlayState = "paused";
+        spool2.style.animationPlayState = "paused";
+        statusTxt.innerText = "⏸️ PAUSE";
+        statusTxt.style.color = "#ffcc66";
     }
 
     function resetGame() {
-      isPlaying = false; isPaused = false; clearInterval(timerInterval); tickSnd.pause(); tickSnd.currentTime = 0;
-      statusTxt.innerText = "준비 완료!"; statusTxt.style.color = "#6a6a6a";
-      timerTxt.style.display = "none"; guideTxt.style.display = "block";
-      tapeBody.classList.remove("broken", "shaking"); boomCloud.style.display = "none";
-      cracks.forEach((c) => (c.style.display = "none"));
-      spools.forEach((s) => { s.style.animation = "none"; s.style.animationPlayState = "running"; });
+        isPlaying = false;
+        isPaused = false;
+        clearInterval(timer);
+        statusTxt.innerText = "READY";
+        statusTxt.style.color = "#4a4a4a";
+        timerTxt.style.display = "none";
+        guideTxt.style.display = "block";
+        spool1.style.animation = "none";
+        spool2.style.animation = "none";
+        boom.style.display = "none";
+        document.getElementById("cassette").classList.remove("shaking");
     }
 
     function peekTime() {
-      if (!isPlaying || isPaused) return;
-      guideTxt.style.display = "none"; timerTxt.innerText = timeLeft + "s"; timerTxt.style.display = "block";
-      setTimeout(() => { if (isPlaying && !isPaused) { timerTxt.style.display = "none"; guideTxt.style.display = "block"; } }, 1200);
+        if (!isPlaying || isPaused) return;
+        guideTxt.style.display = "none";
+        timerTxt.innerText = formatTime(timeLeft);
+        timerTxt.style.display = "block";
+        setTimeout(() => {
+            if (isPlaying && !isPaused) {
+                timerTxt.style.display = "none";
+                guideTxt.style.display = "block";
+            }
+        }, 1200);
     }
 
     function explode() {
-      isPlaying = false; clearInterval(timerInterval);
-      tickSnd.pause(); boomSnd.currentTime = 0; boomSnd.play();
-      statusTxt.innerText = "💥 펑! 게임 종료!"; tapeBody.classList.add("shaking"); boomCloud.style.display = "block";
-      spools.forEach((s) => (s.style.animation = "none"));
-      setTimeout(() => {
-        tapeBody.classList.remove("shaking"); tapeBody.classList.add("broken");
-        cracks.forEach((c) => (c.style.display = "block"));
-        timerTxt.innerText = "0s"; timerTxt.style.display = "block"; guideTxt.style.display = "none";
-      }, 700);
+        clearInterval(timer);
+        isPlaying = false;
+        document.getElementById("boomSound").play();
+        statusTxt.innerText = "💥 BOOM!";
+        statusTxt.style.color = "#ff5e78";
+        document.getElementById("cassette").classList.add("shaking");
+        boom.style.display = "block";
+        setTimeout(() => {
+            document.getElementById("cassette").classList.remove("shaking");
+        }, 800);
     }
 </script>
+
 </body>
 </html>
